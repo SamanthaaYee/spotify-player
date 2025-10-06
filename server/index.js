@@ -1,129 +1,42 @@
-// const express = require('express')
-// const dotenv = require('dotenv');
-// const request = require('request');
-
-// const port = 5000
-
-// dotenv.config()
-
-// var spotify_client_id = process.env.SPOTIFY_CLIENT_ID
-// var spotify_client_secret = process.env.SPOTIFY_CLIENT_SECRET
-
-// var app = express();
-
-// app.get('/auth/login', (req, res) => {
-// });
-
-// app.get('/auth/callback', (req, res) => {
-// });
-
-// app.listen(port, () => {
-//   console.log(`Listening at http://127.0.0.1:${port}`)
-// })
-
-// var generateRandomString = function (length) {
-//   var text = '';
-//   var possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-
-//   for (var i = 0; i < length; i++) {
-//     text += possible.charAt(Math.floor(Math.random() * possible.length));
-//   }
-//   return text;
-// };
-
-// app.get('/auth/login', (req, res) => {
-
-//   var scope = "streaming \
-//                user-read-email \
-//                user-read-private"
-
-//   var state = generateRandomString(16);
-
-//   var auth_query_parameters = new URLSearchParams({
-//     response_type: "code",
-//     client_id: spotify_client_id,
-//     scope: scope,
-//     redirect_uri: "http://127.0.0.1:3000/auth/callback",
-//     state: state
-//   })
-
-//   res.redirect('https://accounts.spotify.com/authorize/?' + auth_query_parameters.toString());
-// })
-
-// app.get('/auth/callback', (req, res) => {
-//   var code = req.query.code;
-//   var authOptions = {
-//     url: 'https://accounts.spotify.com/api/token',
-//     form: {
-//       code: code,
-//       redirect_uri: "http://127.0.0.1:3000/auth/callback",
-//       grant_type: 'authorization_code'
-//     },
-//     headers: {
-//       'Authorization': 'Basic ' + (Buffer.from(spotify_client_id + ':' + spotify_client_secret).toString('base64')),
-//       'Content-Type' : 'application/x-www-form-urlencoded'
-//     },
-//     json: true
-//   };
-
-//   request.post(authOptions, function(error, response, body) {
-//     if (!error && response.statusCode === 200) {
-//       var access_token = body.access_token;
-//       // Redirect to frontend with token as query param
-//       res.redirect(`http://127.0.0.1:3000/?access_token=${access_token}`);
-//     } else {
-//       res.send('Error retrieving access token');
-//     }
-//   });
-// })
-
-// app.get('/auth/token', (req, res) => {
-//   res.json({ access_token: "test_token" });
-// })
-
-// app.get('/', (req, res) => {
-//   res.send('Backend is running!');
-// });
-
 const express = require('express');
 const dotenv = require('dotenv');
 const request = require('request');
-const path = require('path');
 const cors = require('cors');
 
 dotenv.config();
 
 const app = express();
-app.use(cors());
-const port = 5000;
+app.use(cors()); // allow frontend to talk to backend
 
-const spotify_client_id = process.env.SPOTIFY_CLIENT_ID;
-const spotify_client_secret = process.env.SPOTIFY_CLIENT_SECRET;
+const PORT = 5000;
 
-let access_token = '';
+const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
+const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
+const REDIRECT_URI = 'http://127.0.0.1:5000/auth/callback'; // backend callback
 
-function generateRandomString(length) {
-  let text = '';
+// Helper to generate random state
+function generateRandomString(length = 16) {
   const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  for (let i = 0; i < length; i++) {
-    text += possible.charAt(Math.floor(Math.random() * possible.length));
-  }
-  return text;
+  return Array.from({ length }, () => possible.charAt(Math.floor(Math.random() * possible.length))).join('');
 }
 
+// Step 1: Redirect user to Spotify login
 app.get('/auth/login', (req, res) => {
-  const scope = "streaming user-read-email user-read-private";
-  const state = generateRandomString(16);
-  const auth_query_parameters = new URLSearchParams({
-    response_type: "code",
-    client_id: spotify_client_id,
+  const state = generateRandomString();
+  const scope = 'streaming user-read-email user-read-private user-read-playback-state user-modify-playback-state';
+
+  const authQueryParams = new URLSearchParams({
+    response_type: 'code',
+    client_id: SPOTIFY_CLIENT_ID,
     scope: scope,
-    redirect_uri: "http://127.0.0.1:5000/auth/callback",
+    redirect_uri: REDIRECT_URI,
     state: state
   });
-  res.redirect('https://accounts.spotify.com/authorize/?' + auth_query_parameters.toString());
+
+  res.redirect(`https://accounts.spotify.com/authorize/?${authQueryParams.toString()}`);
 });
 
+// Step 2: Spotify redirects back here with code
 app.get('/auth/callback', (req, res) => {
   const code = req.query.code;
 
@@ -131,11 +44,11 @@ app.get('/auth/callback', (req, res) => {
     url: 'https://accounts.spotify.com/api/token',
     form: {
       code: code,
-      redirect_uri: "http://127.0.0.1:5000/auth/callback",
+      redirect_uri: REDIRECT_URI,
       grant_type: 'authorization_code'
     },
     headers: {
-      'Authorization': 'Basic ' + (Buffer.from(spotify_client_id + ':' + spotify_client_secret).toString('base64')),
+      'Authorization': 'Basic ' + Buffer.from(`${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`).toString('base64'),
       'Content-Type': 'application/x-www-form-urlencoded'
     },
     json: true
@@ -143,8 +56,11 @@ app.get('/auth/callback', (req, res) => {
 
   request.post(authOptions, (error, response, body) => {
     if (!error && response.statusCode === 200) {
-      access_token = body.access_token;
-      res.redirect('http://127.0.0.1:3000/');
+      const access_token = body.access_token;
+      const refresh_token = body.refresh_token;
+
+      // Redirect user to frontend with tokens in URL
+      res.redirect(`http://127.0.0.1:3000/?access_token=${access_token}&refresh_token=${refresh_token}`);
     } else {
       console.error('Auth error:', error || body);
       res.status(500).send('Authorization failed');
@@ -152,12 +68,6 @@ app.get('/auth/callback', (req, res) => {
   });
 });
 
-app.get('/auth/token', (req, res) => {
-  res.json({ access_token: access_token });
-});
-
-app.use(express.static(path.join(__dirname, '../build')));
-
-app.listen(port, () => {
-  console.log(`Listening at http://127.0.0.1:${port}`);
+app.listen(PORT, () => {
+  console.log(`Backend listening on http://127.0.0.1:${PORT}`);
 });

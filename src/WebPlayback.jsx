@@ -8,6 +8,7 @@ const trackTemplate = {
 
 function WebPlayback({ token }) {
   const [player, setPlayer] = useState(undefined);
+  const [deviceId, setDeviceId] = useState(null);
   const [is_paused, setPaused] = useState(false);
   const [is_active, setActive] = useState(false);
   const [current_track, setTrack] = useState(trackTemplate);
@@ -20,7 +21,7 @@ function WebPlayback({ token }) {
 
     window.onSpotifyWebPlaybackSDKReady = () => {
       const player = new window.Spotify.Player({
-        name: 'Web Playback SDK',
+        name: "Sam's Web Playback SDK",
         getOAuthToken: cb => { cb(token); },
         volume: 0.5
       });
@@ -29,6 +30,17 @@ function WebPlayback({ token }) {
 
       player.addListener('ready', ({ device_id }) => {
         console.log('Ready with Device ID', device_id);
+        setDeviceId(device_id);
+
+        // Transfer playback to Web Playback SDK
+        fetch('https://api.spotify.com/v1/me/player', {
+          method: 'PUT',
+          body: JSON.stringify({ device_ids: [device_id], play: false }),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+        });
       });
 
       player.addListener('not_ready', ({ device_id }) => {
@@ -46,35 +58,53 @@ function WebPlayback({ token }) {
     };
   }, [token]);
 
-  if (!is_active) {
-    return (
-      <div className="container">
-        <div className="main-wrapper">
-          <b>Instance not active.</b><br />
-          Open Spotify and select "Web Playback SDK" as your device.
-        </div>
-      </div>
-    );
-  }
+  // Control buttons using the Web API to ensure they work
+  const togglePlay = () => {
+    fetch(`https://api.spotify.com/v1/me/player/${is_paused ? 'play' : 'pause'}?device_id=${deviceId}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    }).then(() => setPaused(!is_paused));
+  };
 
-  return (
+  const nextTrack = () => {
+    fetch(`https://api.spotify.com/v1/me/player/next?device_id=${deviceId}`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+  };
+
+  const previousTrack = () => {
+    fetch(`https://api.spotify.com/v1/me/player/previous?device_id=${deviceId}`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+  };
+
+    return (
     <div className="container">
-      <div className="main-wrapper">
-        <img src={current_track.album.images[0].url} className="now-playing__cover" alt="" />
-        <div className="now-playing__side">
-          <div className="now-playing__name">{current_track.name}</div>
-          <div className="now-playing__artist">{current_track.artists[0].name}</div>
-          <div className="controls">
-            <button className="btn-spotify" onClick={() => player.previousTrack()}>&lt;&lt;</button>
-            <button className="btn-spotify" onClick={() => player.togglePlay()}>
-              {is_paused ? "PLAY" : "PAUSE"}
-            </button>
-            <button className="btn-spotify" onClick={() => player.nextTrack()}>&gt;&gt;</button>
-          </div>
+        <div className="main-wrapper">
+        {!deviceId && <b>Loading Spotify Web Playback...</b>}
+        {deviceId && (
+            <>
+            <img src={current_track.album.images[0].url} className="now-playing__cover" alt="" />
+            <div className="now-playing__side">
+                <div className="now-playing__name">{current_track.name}</div>
+                <div className="now-playing__artist">{current_track.artists[0].name}</div>
+                <div className="controls">
+                <button className="btn-spotify" onClick={previousTrack}>&lt;&lt;</button>
+                <button className="btn-spotify" onClick={togglePlay}>
+                    {is_paused ? "PLAY" : "PAUSE"}
+                </button>
+                <button className="btn-spotify" onClick={nextTrack}>&gt;&gt;</button>
+                </div>
+            </div>
+            </>
+        )}
         </div>
-      </div>
     </div>
-  );
+    );
 }
 
 export default WebPlayback;
