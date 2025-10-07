@@ -12,7 +12,10 @@ const PORT = 5000;
 
 const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
 const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
-const REDIRECT_URI = 'http://127.0.0.1:5000/auth/callback'; // backend callback
+// const REDIRECT_URI = 'http://127.0.0.1:5000/auth/callback'; // backend callback
+const REDIRECT_URI = process.env.REDIRECT_URI;
+// const REDIRECT_URI = process.env.REDIRECT_URI || `http://${HOST}:${PORT}/auth/callback`;
+const FRONTEND_URI = process.env.FRONTEND_URI || 'http://127.0.0.1:3000';
 
 // Helper to generate random state
 function generateRandomString(length = 16) {
@@ -60,7 +63,8 @@ app.get('/auth/callback', (req, res) => {
       const refresh_token = body.refresh_token;
 
       // Redirect user to frontend with tokens in URL
-      res.redirect(`http://127.0.0.1:3000/?access_token=${access_token}&refresh_token=${refresh_token}`);
+      // res.redirect(`http://127.0.0.1:3000/?access_token=${access_token}&refresh_token=${refresh_token}`);
+      res.redirect(`${FRONTEND_URI}/?access_token=${access_token}&refresh_token=${refresh_token}`);
     } else {
       console.error('Auth error:', error || body);
       res.status(500).send('Authorization failed');
