@@ -8,13 +8,16 @@ dotenv.config();
 const app = express();
 app.use(cors()); // allow frontend to talk to backend
 
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
 
 const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
 const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
 // const REDIRECT_URI = 'http://127.0.0.1:5000/auth/callback'; // backend callback
-const REDIRECT_URI = process.env.REDIRECT_URI;
-// const REDIRECT_URI = process.env.REDIRECT_URI || `http://${HOST}:${PORT}/auth/callback`;
+// const REDIRECT_URI = process.env.REDIRECT_URI;
+// // const REDIRECT_URI = process.env.REDIRECT_URI || `http://${HOST}:${PORT}/auth/callback`;
+// const FRONTEND_URI = process.env.FRONTEND_URI || 'http://127.0.0.1:3000';
+
+const REDIRECT_URI = process.env.REDIRECT_URI || `http://127.0.0.1:${PORT}/auth/callback`;
 const FRONTEND_URI = process.env.FRONTEND_URI || 'http://127.0.0.1:3000';
 
 // Helper to generate random state
@@ -73,5 +76,5 @@ app.get('/auth/callback', (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Backend listening on http://127.0.0.1:${PORT}`);
+  console.log(`Backend listening on port ${PORT}`);
 });
