@@ -9,13 +9,14 @@ function App() {
   useEffect(() => {
     async function getToken() {
       // Check if access_token is in URL (after Spotify login)
+      const BACKEND_URI = process.env.REACT_APP_BACKEND_URI || 'http://127.0.0.1:5000';
       const urlParams = new URLSearchParams(window.location.search);
       let access_token = urlParams.get('access_token');
 
       // If no token in URL, fetch from backend (for returning users)
       if (!access_token) {
         try {
-          const response = await fetch('http://127.0.0.1:5000/auth/token');
+          const response = await fetch(`${BACKEND_URI}/auth/token`);
           const json = await response.json();
           access_token = json.access_token;
         } catch (err) {
