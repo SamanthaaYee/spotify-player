@@ -1,3 +1,5 @@
-my first project using spotify api and web playback!
+## 🎧 Spotify Web Player
+A web app that connects to Spotify's API, allowing users to connect to their accounts and play/control music directly from their browser - built with React, Node & Express.
 
-creating an embedded spotify player with custom UI 
+https://github.com/user-attachments/assets/2b688f75-84f9-4bf5-956d-de2a7b974eea
+
