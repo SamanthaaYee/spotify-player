@@ -12,6 +12,8 @@ function WebPlayback({ token }) {
   const [is_paused, setPaused] = useState(false);
   const [is_active, setActive] = useState(false);
   const [current_track, setTrack] = useState(trackTemplate);
+  const current_track_name = current_track.name;
+  const current_artist_name = current_track.artists[0].name;
 
   useEffect(() => {
     const script = document.createElement("script");
@@ -21,7 +23,7 @@ function WebPlayback({ token }) {
 
     window.onSpotifyWebPlaybackSDKReady = () => {
       const player = new window.Spotify.Player({
-        name: "Sam's Web Playback SDK",
+        name: "sam's web playback.mp3",
         getOAuthToken: cb => { cb(token); },
         volume: 0.5
       });
@@ -83,27 +85,33 @@ function WebPlayback({ token }) {
   };
 
     return (
-    <div className="container">
-        <div className="main-wrapper">
-        {!deviceId && <b>Loading Spotify Web Playback...</b>}
-        {deviceId && (
-            <>
-            <img src={current_track.album.images[0].url} className="now-playing__cover" alt="" />
-            <div className="now-playing__side">
-                <div className="now-playing__name">{current_track.name}</div>
-                <div className="now-playing__artist">{current_track.artists[0].name}</div>
-                <div className="controls">
-                <button className="btn-spotify" onClick={previousTrack}>&lt;&lt;</button>
-                <button className="btn-spotify" onClick={togglePlay}>
-                    {is_paused ? "PLAY" : "PAUSE"}
-                </button>
-                <button className="btn-spotify" onClick={nextTrack}>&gt;&gt;</button>
-                </div>
-            </div>
-            </>
-        )}
-        </div>
-    </div>
+      <div className="container liquid-glass">
+          <div className="content-wrapper">
+          {!deviceId && <b>your music is loading...</b>}
+          {deviceId && (
+              <>
+              <div className="cover-container">
+                <img src={current_track.album.images[0].url} className={`now-playing__cover ${is_paused ? "" : "animation__spin"}`} alt="" />
+                {/* <div class="hole"></div> */}
+              </div>
+
+              <div className="now-playing__side">
+                  <div>
+                      <div className="now-playing__name now-playing__text">{current_track_name}</div>
+                      <div className="now-playing__artist now-playing__text">{current_artist_name}</div>
+                  </div>
+                  <div className="controls">
+                      <button className="btn-spotify" onClick={previousTrack}>&lt;&lt;</button>
+                      <button className="btn-spotify" onClick={togglePlay}>
+                          {is_paused ? "play" : "pause"}
+                      </button>
+                      <button className="btn-spotify" onClick={nextTrack}>&gt;&gt;</button>
+                  </div>
+              </div>
+              </>
+          )}
+          </div>
+      </div>
     );
 }
 
