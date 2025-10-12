@@ -44,7 +44,7 @@ body {
   overflow: hidden;
   position: absolute;
   border: none !important;
-  color: white !important;
+  color: darkgray !important;
 }
 
 .liquid-glass::before,
